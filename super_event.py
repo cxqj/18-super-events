@@ -14,7 +14,8 @@ class SuperEvent(nn.Module):
         self.dropout = nn.Dropout(0.7)
         self.add_module('d', self.dropout)
 
-        self.super_event = tsf.TSF(3)
+        # 定义两个超事件
+        self.super_event = tsf.TSF(3)  # 3可以理解为通道数，其实超事件可以理解为深度可分离卷积，对每个通道用三种不同的卷积核做卷积
         self.add_module('sup', self.super_event)
         self.super_event2 = tsf.TSF(3)
         self.add_module('sup2', self.super_event2)
@@ -23,12 +24,14 @@ class SuperEvent(nn.Module):
         # we have 2xD*3
         # we want to learn a per-class weighting
         # to take 2xD*3 to D*3
-        self.cls_wts = nn.Parameter(torch.Tensor(classes))
+        self.cls_wts = nn.Parameter(torch.Tensor(classes))  # soft_attention权重
         
-        self.sup_mat = nn.Parameter(torch.Tensor(1, classes, 1024*3))
+        # 超事件的权重
+        self.sup_mat = nn.Parameter(torch.Tensor(1, classes, 1024*3))  # class为滤波器的个数，其中每个滤波器有三个通道，作用于输入的每个通道
         stdv = 1./np.sqrt(1024+1024)
         self.sup_mat.data.uniform_(-stdv, stdv)
 
+        # 最终的输出和其卷积核参数的分布
         self.per_frame = nn.Conv3d(1024, classes, (1,1,1))
         self.per_frame.weight.data.uniform_(-stdv, stdv)
         self.per_frame.bias.data.uniform_(-stdv, stdv)
@@ -55,7 +58,7 @@ class SuperEvent(nn.Module):
 
         # now we do a bmm to get B x C x D*3
         #print cls_wts.expand(inp[0].size()[0], -1, -1).size(), super_event.size()
-        super_event = torch.bmm(cls_wts.expand(inp[0].size()[0], -1, -1), super_event)
+        super_event = torch.bmm(cls_wts.expand(inp[0].size()[0], -1, -1), super_event)  # cls_wts就是论文中所说的soft_attention,得到最终的超事件表示
         del cls_wts
         print super_event.size()
         # apply the super-event weights
@@ -65,7 +68,7 @@ class SuperEvent(nn.Module):
         super_event = super_event.unsqueeze(2).unsqueeze(3).unsqueeze(4)
 
         cls = self.per_frame(inp[0])
-        return super_event+cls
+        return super_event+cls    # 得到最终的帧级特征表示
 
 
 
