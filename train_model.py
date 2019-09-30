@@ -13,7 +13,8 @@ def str2bool(v):
 parser = argparse.ArgumentParser()
 parser.add_argument('-mode', type=str, help='rgb or flow (or joint for eval)')
 parser.add_argument('-train', type=str2bool, default='True', help='train or eval')
-parser.add_argument('-model_file', type=str)
+# 模型保存路径
+parser.add_argument('-model_file', type=str)  
 parser.add_argument('-rgb_model_file', type=str)
 parser.add_argument('-flow_model_file', type=str)
 parser.add_argument('-gpu', type=str, default='1')
@@ -52,7 +53,7 @@ if args.dataset == 'multithumos':
     flow_root = '/ssd2/thumos/i3d_flow'
     classes = 65
 elif args.dataset == 'charades':
-    from charades_i3d_per_video import MultiThumos as Dataset
+    from charades_i3d_per_video import MultiThumos as Dataset     # 写错了吧
     from charades_i3d_per_video import mt_collate_fn as collate_fn
     train_split = 'data/charades.json'
     test_split = 'data/charades.json'
@@ -231,7 +232,7 @@ if __name__ == '__main__':
 
 
     if args.train:
-        model = super_event.get_super_event_model(0, classes)
+        model = super_event.get_super_event_model(0, classes)   # 超事件模型
         criterion = nn.NLLLoss(reduce=False)
     
         lr = 0.1*batch_size/len(datasets['train'])
