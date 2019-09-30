@@ -15,7 +15,7 @@ class SuperEvent(nn.Module):
         self.add_module('d', self.dropout)
 
         # 定义两个超事件
-        self.super_event = tsf.TSF(3)  # 3可以理解为通道数，其实超事件可以理解为深度可分离卷积，对每个通道用三种不同的卷积核做卷积
+        self.super_event = tsf.TSF(3)  # 3可以理解为通道数，其实超事件可以理解为深度可分离卷积，对每个通道用一个卷积核做卷积，每个卷积核的参数分布满足柯西分布
         self.add_module('sup', self.super_event)
         self.super_event2 = tsf.TSF(3)
         self.add_module('sup2', self.super_event2)
@@ -46,6 +46,7 @@ class SuperEvent(nn.Module):
             dim = 0
 
         #print inp[0].size()
+        # 最终的超事件表示是两种超事件的concat
         super_event = self.dropout(torch.stack([self.super_event(inp).squeeze(), self.super_event2(inp).squeeze()], dim=dim))
         if val:
             super_event = super_event.unsqueeze(0)
@@ -68,7 +69,7 @@ class SuperEvent(nn.Module):
         super_event = super_event.unsqueeze(2).unsqueeze(3).unsqueeze(4)
 
         cls = self.per_frame(inp[0])
-        return super_event+cls    # 得到最终的帧级特征表示
+        return super_event+cls    # 得到最终的帧级特征表示，每帧特征和超事件的结合
 
 
 
