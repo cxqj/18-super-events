@@ -1,3 +1,5 @@
+# 超事件的核心代码（时序结构滤波）
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,11 +11,12 @@ class TSF(nn.Module):
     def __init__(self, N=3):
         super(TSF, self).__init__()
 
-        self.N = float(N)
-        self.Ni = int(N)
+        self.N = float(N)  # 每个卷积核的通道数
+        self.Ni = int(N)   # 每个卷积核中柯西分布的个数
 
         # create parameteres for center and delta of this super event
-        self.center = nn.Parameter(torch.FloatTensor(N))
+	
+        self.center = nn.Parameter(torch.FloatTensor(N)) # 卷积核的参数
         self.delta = nn.Parameter(torch.FloatTensor(N))
         self.gamma = nn.Parameter(torch.FloatTensor(N))
 
@@ -33,7 +36,7 @@ class TSF(nn.Module):
         """
 
         # scale to length of videos
-        centers = (length - 1) * (center + 1) / 2.0
+        centers = (length - 1) * (center + 1) / 2.0   # 相当于把中心点和delta按时间维度展开
         deltas = length * (1.0 - torch.abs(delta))
 
         gammas = torch.exp(1.5 - 2.0 * torch.abs(gamma))
@@ -65,7 +68,7 @@ class TSF(nn.Module):
 
     def forward(self, inp):
         video, length = inp
-        batch, channels, time = video.squeeze(3).squeeze(3).size()
+        batch, channels, time = video.squeeze(3).squeeze(3).size()  # （B,C,T,H,W）
         # vid is (B x C x T)
         vid = video.view(batch*channels, time, 1).unsqueeze(2)
         # f is (B x T x N)
@@ -75,7 +78,7 @@ class TSF(nn.Module):
         f = f.view(batch*channels, self.Ni, time)
 
         # o is (B x C x N)
-        o = torch.bmm(f, vid.squeeze(2))
+        o = torch.bmm(f, vid.squeeze(2))  # 这里的滤波器并不是卷积，而是矩阵相乘
         del f
         del vid
         o = o.view(batch, channels*self.Ni)#.unsqueeze(3).unsqueeze(3)
