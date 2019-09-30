@@ -34,18 +34,18 @@ def make_dataset(split_file, split, root, num_classes=65):
         if data[vid]['subset'] != split:
             continue
 
-        if not os.path.exists(os.path.join(root, vid+'.npy')):
+        if not os.path.exists(os.path.join(root, vid+'.npy')):   # 特征文件
             continue
-        fts = np.load(os.path.join(root, vid+'.npy'))
+        fts = np.load(os.path.join(root, vid+'.npy'))  # (128,1024)
         num_feat = fts.shape[0]
         label = np.zeros((num_feat,num_classes), np.float32)
 
         fps = num_feat/data[vid]['duration']
-        for ann in data[vid]['actions']:
+        for ann in data[vid]['actions']:   # 标注格式： [类别，开始时间，结束时间]
             for fr in range(0,num_feat,1):
-                if fr/fps > ann[1] and fr/fps < ann[2]:
+                if fr/fps > ann[1] and fr/fps < ann[2]:   
                     label[fr, ann[0]-1] = 1 # binary classification, class index -1 to make 0 indexed
-        dataset.append((vid, label, data[vid]['duration']))
+        dataset.append((vid, label, data[vid]['duration']))  # 每帧的类别标注
         i += 1
     
     return dataset
@@ -56,7 +56,7 @@ class MultiThumos(data_utl.Dataset):
 
     def __init__(self, split_file, split, root, batch_size):
         
-        self.data = make_dataset(split_file, split, root)
+        self.data = make_dataset(split_file, split, root)    # (vid, label, data[vid]['duration'])
         self.split_file = split_file
         self.batch_size = batch_size
         self.root = root
@@ -79,7 +79,7 @@ class MultiThumos(data_utl.Dataset):
             self.in_mem[entry[0]] = feat
             
         label = entry[1]
-        return feat, label, [entry[0], entry[2]]
+        return feat, label, [entry[0], entry[2]]  # 特征，帧级label
 
     def __len__(self):
         return len(self.data)
