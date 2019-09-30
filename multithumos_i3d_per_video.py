@@ -95,9 +95,9 @@ def mt_collate_fn(batch):
 
     new_batch = []
     for b in batch:
-        f = np.zeros((max_len, b[0].shape[1], b[0].shape[2], b[0].shape[3]), np.float32)
-        m = np.zeros((max_len), np.float32)
-        l = np.zeros((max_len, b[1].shape[1]), np.float32)
+        f = np.zeros((max_len, b[0].shape[1], b[0].shape[2], b[0].shape[3]), np.float32)   # feature
+        m = np.zeros((max_len), np.float32)   # duration
+        l = np.zeros((max_len, b[1].shape[1]), np.float32)   # label
         f[:b[0].shape[0]] = b[0]
         m[:b[0].shape[0]] = 1
         l[:b[0].shape[0], :] = b[1]
