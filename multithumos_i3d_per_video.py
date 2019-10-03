@@ -60,7 +60,7 @@ class MultiThumos(data_utl.Dataset):
         self.split_file = split_file
         self.batch_size = batch_size
         self.root = root
-        self.in_mem = {}
+        self.in_mem = {}   # 将特征保存在字典里
 
     def __getitem__(self, index):
         """
@@ -85,23 +85,23 @@ class MultiThumos(data_utl.Dataset):
         return len(self.data)
 
 
-    
+   
 def mt_collate_fn(batch):
     "Pads data and puts it into a tensor of same dimensions"
     max_len = 0
-    for b in batch:
+    for b in batch:   # b (T,H,W,C)
         if b[0].shape[0] > max_len:
             max_len = b[0].shape[0]
 
     new_batch = []
     for b in batch:
-        f = np.zeros((max_len, b[0].shape[1], b[0].shape[2], b[0].shape[3]), np.float32)   # feature
-        m = np.zeros((max_len), np.float32)   # duration
-        l = np.zeros((max_len, b[1].shape[1]), np.float32)   # label
+        f = np.zeros((max_len, b[0].shape[1], b[0].shape[2], b[0].shape[3]), np.float32)   
+        m = np.zeros((max_len), np.float32)    # MASK和输入特征的时间步一致 
+        l = np.zeros((max_len, b[1].shape[1]), np.float32)   
         f[:b[0].shape[0]] = b[0]
-        m[:b[0].shape[0]] = 1
+        m[:b[0].shape[0]] = 1   # mask是一个和frame数量相当的全1的向量，具体作用不知道
         l[:b[0].shape[0], :] = b[1]
-        new_batch.append([video_to_tensor(f), torch.from_numpy(m), torch.from_numpy(l), b[2]])
+        new_batch.append([video_to_tensor(f), torch.from_numpy(m), torch.from_numpy(l), b[2]])  # (T,H,W,C)---->(C,T,H,W)
 
     return default_collate(new_batch)
     
