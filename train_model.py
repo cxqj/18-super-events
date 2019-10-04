@@ -17,6 +17,7 @@ parser.add_argument('-train', type=str2bool, default='True', help='train or eval
 parser.add_argument('-model_file', type=str)  
 parser.add_argument('-rgb_model_file', type=str)
 parser.add_argument('-flow_model_file', type=str)
+
 parser.add_argument('-gpu', type=str, default='1')
 parser.add_argument('-dataset', type=str, default='charades')
 
@@ -49,7 +50,7 @@ if args.dataset == 'multithumos':
     from multithumos_i3d_per_video import mt_collate_fn as collate_fn
     train_split = 'data/multithumos.json'
     test_split = 'data/multithumos.json'
-    rgb_root = '/ssd2/thumos/i3d_rgb'
+    rgb_root = '/ssd2/thumos/i3d_rgb'    # 缺少特征文件
     flow_root = '/ssd2/thumos/i3d_flow'
     classes = 65
 elif args.dataset == 'charades':
@@ -129,7 +130,7 @@ def eval_model(model, dataloader, baseline=False):
 
 def run_network(model, data, gpu, baseline=False):
     # get the inputs
-    inputs, mask, labels, other = data
+    inputs, mask, labels, other = data   # 实际用的是 mt_collate_fn函数的返回结果，other是nf
     
     # wrap them in Variable
     inputs = Variable(inputs.cuda(gpu))
@@ -143,7 +144,7 @@ def run_network(model, data, gpu, baseline=False):
         outputs = model([inputs, torch.sum(mask, 1)])
     else:
         outputs = model(inputs)
-    outputs = outputs.squeeze(3).squeeze(3).permute(0,2,1) # remove spatial dims
+    outputs = outputs.squeeze(3).squeeze(3).permute(0,2,1) # remove spatial dims and transpose dims
     ##outputs = outputs.permute(0,2,1) # remove spatial dims
     probs = F.sigmoid(outputs) * mask.unsqueeze(2)
     
