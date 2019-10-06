@@ -146,7 +146,7 @@ def run_network(model, data, gpu, baseline=False):
         outputs = model(inputs)
     outputs = outputs.squeeze(3).squeeze(3).permute(0,2,1) # remove spatial dims and transpose dims
     ##outputs = outputs.permute(0,2,1) # remove spatial dims
-    probs = F.sigmoid(outputs) * mask.unsqueeze(2)
+    probs = F.sigmoid(outputs) * mask.unsqueeze(2)   # 得到每一帧属于每一个类别的概率
     
     # binary action-prediction loss
     loss = F.binary_cross_entropy_with_logits(outputs, labels, size_average=False)#, weight=cls_wts)
