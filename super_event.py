@@ -61,7 +61,7 @@ class SuperEvent(nn.Module):
         # now we do a bmm to get B x C x D*3
         #print cls_wts.expand(inp[0].size()[0], -1, -1).size(), super_event.size()
         # (2,65,2) X (2,2,3072)---->(2,65,3072)
-        super_event = torch.bmm(cls_wts.expand(inp[0].size()[0], -1, -1), super_event)  
+        super_event = torch.bmm(cls_wts.expand(inp[0].size()[0], -1, -1), super_event)    # 再用类别权重对每个通道加权
         del cls_wts
         print super_event.size()
         # apply the super-event weights
