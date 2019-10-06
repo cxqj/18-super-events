@@ -65,7 +65,7 @@ class SuperEvent(nn.Module):
         del cls_wts
         print super_event.size()
         # apply the super-event weights
-        super_event = torch.sum(self.sup_mat * super_event, dim=2)  # (2,65)
+        super_event = torch.sum(self.sup_mat * super_event, dim=2)  # (2,65)  将所有的通道聚合为一个分类概率
         #super_event = self.sup_mat(super_event.view(-1, 1024)).view(-1, self.classes)
         
         super_event = super_event.unsqueeze(2).unsqueeze(3).unsqueeze(4)  # (2,65,1,1,1)
