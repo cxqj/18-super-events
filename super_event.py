@@ -47,7 +47,8 @@ class SuperEvent(nn.Module):
 
         #print inp[0].size()
         # 最终的超事件表示是两种超事件的concat
-        super_event = self.dropout(torch.stack([self.super_event(inp).squeeze(), self.super_event2(inp).squeeze()], dim=dim))
+        # 每个超事件的维度为(B,C*3)
+        super_event = self.dropout(torch.stack([self.super_event(inp).squeeze(), self.super_event2(inp).squeeze()], dim=dim))  # (B,2,C*3)
         if val:
             super_event = super_event.unsqueeze(0)
         # we have B x 2 x D*3
@@ -59,17 +60,18 @@ class SuperEvent(nn.Module):
 
         # now we do a bmm to get B x C x D*3
         #print cls_wts.expand(inp[0].size()[0], -1, -1).size(), super_event.size()
-        super_event = torch.bmm(cls_wts.expand(inp[0].size()[0], -1, -1), super_event)  # cls_wts就是论文中所说的soft_attention,得到最终的超事件表示
+        # (2,65,2) X (2,2,3072)---->(2,65,3072)
+        super_event = torch.bmm(cls_wts.expand(inp[0].size()[0], -1, -1), super_event)  
         del cls_wts
         print super_event.size()
         # apply the super-event weights
-        super_event = torch.sum(self.sup_mat * super_event, dim=2)
+        super_event = torch.sum(self.sup_mat * super_event, dim=2)  # (2,65)
         #super_event = self.sup_mat(super_event.view(-1, 1024)).view(-1, self.classes)
         
-        super_event = super_event.unsqueeze(2).unsqueeze(3).unsqueeze(4)
+        super_event = super_event.unsqueeze(2).unsqueeze(3).unsqueeze(4)  # (2,65,1,1,1)
 
-        cls = self.per_frame(inp[0])
-        return super_event+cls    # 得到最终的帧级特征表示，每帧特征和超事件的结合
+        cls = self.per_frame(inp[0])  # (2,65,32,1,1)
+        return super_event+cls    # (2,65,32,1,1)
 
 
 
