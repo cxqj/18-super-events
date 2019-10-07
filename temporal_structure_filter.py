@@ -11,8 +11,8 @@ class TSF(nn.Module):
     def __init__(self, N=3):
         super(TSF, self).__init__()
 
-        self.N = float(N)  # 每个卷积核的通道数
-        self.Ni = int(N)   # 每个卷积核中柯西分布的个数
+        self.N = float(N)  # 每个卷积核中柯西分布的个数
+        self.Ni = int(N)   # 每个卷积核的通道数
 
         # create parameteres for center and delta of this super event
 	
@@ -46,8 +46,8 @@ class TSF(nn.Module):
         a = a.cuda()
         
         # stride and center
-        a = deltas[:, None] * a[None, :]  # None可以理解为按某一行或一列依次运行 [6,3]
-        a = centers[:, None] + a
+        a = deltas[:, None] * a[None, :]  # None可以理解为按某一行或一列依次运行 [6,3]，将卷积核的通道数拓展到Ni
+        a = centers[:, None] + a # [2*3,3]
 
         b = Variable(torch.arange(0, time))  # [0,1,2,3,......31]  [32,]
         b = b.cuda()
@@ -71,7 +71,7 @@ class TSF(nn.Module):
 			 [0,1,2,...31]-[19.0191]]
 	
 	'''
-        f = b - a[:, :, None]   # [6,3,32]
+        f = b - a[:, :, None]   # [6,3,32]  
         f = f / gammas[:, None, None]
         
         f = f ** 2.0
@@ -82,7 +82,7 @@ class TSF(nn.Module):
 
         f = f[:,0,:].contiguous()     # 由于第一个维度是一样的，因此移除了第一个维度 (6,32)
 
-        f = f.view(-1, self.Ni, time)  # (2,3,32)
+        f = f.view(-1, self.Ni, time)  # (2,3,32)  第二个3代表有3种卷积核
         
         return f
 
@@ -98,10 +98,10 @@ class TSF(nn.Module):
         f = f.view(batch*channels, self.Ni, time)  # (B*C,N,T)
 
         # o is (B x C x N)
-        o = torch.bmm(f, vid.squeeze(2))  # (B*C,N,T)X(B*C,T,1) = (B*C,N,1)
+        o = torch.bmm(f, vid.squeeze(2))  # (B*C,N,T)X(B*C,T,1) = (B*C,N,1)  
         del f
         del vid
-        o = o.view(batch, channels*self.Ni)#.unsqueeze(3).unsqueeze(3)
+        o = o.view(batch, channels*self.Ni)#.unsqueeze(3).unsqueeze(3)  也就是每个特征图用三种不同的全局特征加权
 	return o
 
 
