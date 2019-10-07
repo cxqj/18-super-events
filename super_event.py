@@ -79,3 +79,5 @@ def get_super_event_model(gpu, classes=65):
     model = SuperEvent(classes)
     return model.cuda()
 
+
+
