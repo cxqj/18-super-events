@@ -46,6 +46,7 @@ class TSF(nn.Module):
         a = a.cuda()
         
         # stride and center
+	# 相当于一种复制操作
         a = deltas[:, None] * a[None, :]  # None可以理解为按某一行或一列依次运行 [6,3]，将卷积核的通道数拓展到Ni
         a = centers[:, None] + a # [2*3,3]
 
@@ -82,7 +83,7 @@ class TSF(nn.Module):
 
         f = f[:,0,:].contiguous()     # 由于第一个维度是一样的，因此移除了第一个维度 (6,32)
 
-        f = f.view(-1, self.Ni, time)  # (2,3,32)  第二个3代表有3种卷积核
+        f = f.view(-1, self.Ni, time)  # (2,3,32)  
         
         return f
 
@@ -101,7 +102,7 @@ class TSF(nn.Module):
         o = torch.bmm(f, vid.squeeze(2))  # (B*C,N,T)X(B*C,T,1) = (B*C,N,1)  
         del f
         del vid
-        o = o.view(batch, channels*self.Ni)#.unsqueeze(3).unsqueeze(3)  也就是每个特征图用三种不同的全局特征加权
+        o = o.view(batch, channels*self.Ni)#.unsqueeze(3).unsqueeze(3)  # channel*Ni就是超事件表示，维度从(T,C)降低到了(3,C)相当于融合了时间维度信息
 	return o
 
 
