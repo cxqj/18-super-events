@@ -47,7 +47,7 @@ class SuperEvent(nn.Module):
 
         #print inp[0].size()
         # 最终的超事件表示是两种超事件的concat
-        # 每个超事件的维度为(B,C*3)
+        # 每个超事件的维度为(B,C*3),两个超事件对应论文中的M
         super_event = self.dropout(torch.stack([self.super_event(inp).squeeze(), self.super_event2(inp).squeeze()], dim=dim))  # (B,2,C*3)
         if val:
             super_event = super_event.unsqueeze(0)
