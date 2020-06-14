@@ -77,6 +77,7 @@ elif args.dataset == 'ava':
 def sigmoid(x):
     return 1/(1+np.exp(-x))
 
+# 返回对应的数据加载器和数据集对象
 def load_data(train_split, val_split, root):
     # Load Data
 
@@ -130,12 +131,12 @@ def eval_model(model, dataloader, baseline=False):
 
 def run_network(model, data, gpu, baseline=False):
     # get the inputs
-    inputs, mask, labels, other = data   # 实际用的是 mt_collate_fn函数的返回结果，other是nf
+    inputs, mask, labels, other = data 
     
     # wrap them in Variable
-    inputs = Variable(inputs.cuda(gpu))
-    mask = Variable(mask.cuda(gpu))
-    labels = Variable(labels.cuda(gpu))
+    inputs = Variable(inputs.cuda(gpu))  #(2,1024,32,1,1)
+    mask = Variable(mask.cuda(gpu))   #(2,32)
+    labels = Variable(labels.cuda(gpu))  #(2,32,65)
     
     cls_wts = torch.FloatTensor([1.00]).cuda(gpu)
 
@@ -169,6 +170,14 @@ def train_step(model, gpu, optimizer, dataloader):
     num_iter = 0.
     
     # Iterate over data.
+    """
+    data数据格式：
+        feat:(2,1024,32,1,1)
+        mask:(2,32)
+        label:(2,32,65)
+        other: (2,2)
+    """
+    
     for data in dataloader:
         optimizer.zero_grad()
         num_iter += 1
