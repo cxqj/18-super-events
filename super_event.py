@@ -39,6 +39,7 @@ class SuperEvent(nn.Module):
         
     def forward(self, inp):
         inp[0] = self.dropout(inp[0])
+        # 判断当前是否为验证集
         val = False
         dim = 1
         if inp[0].size()[0] == 1:
