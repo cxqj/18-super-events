@@ -41,13 +41,12 @@ class TSF(nn.Module):
         deltas = length * (1.0 - torch.abs(delta)) # [6]
 
         gammas = torch.exp(1.5 - 2.0 * torch.abs(gamma)) # [6]
-        
-        a = Variable(torch.zeros(self.Ni)) 
+        # 相当于是在建立滤波器的柯西分布的中心
+        a = Variable(torch.zeros(self.Ni))  #[0.,0.,0.]   [3]
         a = a.cuda()
         
         # stride and center
-	# 相当于一种复制操作
-        a = deltas[:, None] * a[None, :]  # None可以理解为按某一行或一列依次运行 [6,3]，将卷积核的通道数拓展到Ni
+        a = deltas[:, None] * a[None, :]  # None相当于增加一个维度,就是间接reshape了一下  (6,1)x(1,3)-->(6,3)
         a = centers[:, None] + a # [2*3,3]
 
         b = Variable(torch.arange(0, time))  # [0,1,2,3,......31]  [32,]
@@ -58,6 +57,8 @@ class TSF(nn.Module):
 	a = [20.1715,20.1715,20.1715]
 	    [6.1892,6.1892,6.1892]
 	    [19.0191,19.0191,19.0191]
+	    
+        a[:,:,None]: (3,3)-->(3,3,1)
 	    
 	    
 	    
@@ -88,22 +89,26 @@ class TSF(nn.Module):
         return f
 
     def forward(self, inp):
-        video, length = inp  # (B,C,T,H,W)，length为传入的mask向量长度和时间维度一致
-        batch, channels, time = video.squeeze(3).squeeze(3).size()  # 
-        # vid is (B x C x T)
-        vid = video.view(batch*channels, time, 1).unsqueeze(2) # (B*C,T,1,1)--
+        video, length = inp  # (B,C,T,H,W)，length为每个batch特征对应的实际长度
+        batch, channels, time = video.squeeze(3).squeeze(3).size()  # (2,1024,32)
+	
+        vid = video.view(batch*channels, time, 1).unsqueeze(2) # (2,1024,32)-->(2*1024,32,1,1)
         # f is (B x N x T)
-        f = self.get_filters(torch.tanh(self.delta).repeat(batch), torch.tanh(self.gamma).repeat(batch), torch.tanh(self.center.repeat(batch)), length.view(batch,1).repeat(1,self.Ni).view(-1), time)
+        f = self.get_filters(torch.tanh(self.delta).repeat(batch), 
+			     torch.tanh(self.gamma).repeat(batch), 
+			     torch.tanh(self.center.repeat(batch)), 
+			     length.view(batch,1).repeat(1,self.Ni).view(-1), 
+			     time)
         # repeat over channels
-        f = f.unsqueeze(1).repeat(1, channels, 1, 1)  # (2,1024,3,32)-->(B,C,N,T)
-        f = f.view(batch*channels, self.Ni, time)  # (B*C,N,T)
+        f = f.unsqueeze(1).repeat(1, channels, 1, 1)  # (2,3,32)-->(2,1,3,32)-->(2,1024,3,32)
+        f = f.view(batch*channels, self.Ni, time)  # (2,1024,3,32)-->(2*1024,3,32)
 
         # o is (B x C x N)
-        o = torch.bmm(f, vid.squeeze(2))  # (B*C,N,T)X(B*C,T,1) = (B*C,N,1)  
+        o = torch.bmm(f, vid.squeeze(2))  # (2*1024,3,32)x(2*1024,32,1)-->(2*1024,3,1)  
         del f
         del vid
-        o = o.view(batch, channels*self.Ni)#.unsqueeze(3).unsqueeze(3)  # channel*Ni就是超事件表示，维度从(T,C)降低到了(3,C)相当于融合了时间维度信息
-	return o
+        o = o.view(batch, channels*self.Ni)  #(2*1024,3,1)-->(2,1024*3)
+	return o     # (2,1024*3)
 
 
 
