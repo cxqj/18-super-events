@@ -37,19 +37,18 @@ class TSF(nn.Module):
 
         # scale to length of videos
 	# 下面都是6是因为batch_size为2，每一个batch为3
-        centers = (length - 1) * (center + 1) / 2.0   #[6]
-        deltas = length * (1.0 - torch.abs(delta)) # [6]
-
-        gammas = torch.exp(1.5 - 2.0 * torch.abs(gamma)) # [6]
-        # 相当于是在建立滤波器的柯西分布的中心
+        centers = (length - 1) * (center + 1) / 2.0   #[6]   对应公式论文公式(2) 第1行
+        deltas = length * (1.0 - torch.abs(delta))    # [6]  delta只是提供了一个形状而已
+        gammas = torch.exp(1.5 - 2.0 * torch.abs(gamma)) # [6]   对应公式论文公式(2) 第2行
+	
+        #建立滤波器的柯西分布的中心
         a = Variable(torch.zeros(self.Ni))  #[0.,0.,0.]   [3]
         a = a.cuda()
-        
-        # stride and center
         a = deltas[:, None] * a[None, :]  # None相当于增加一个维度,就是间接reshape了一下  (6,1)x(1,3)-->(6,3)
-        a = centers[:, None] + a # [2*3,3]
+        a = centers[:, None] + a   #(6,3)  6是因为有两个batch，每一个batch对应的滤波器形状为3*3
 
-        b = Variable(torch.arange(0, time))  # [0,1,2,3,......31]  [32,]
+	# 下面相当与将滤波器的中心点随时间进行偏移，对应公式论文公式(2) 第3行的t-centers项
+        b = Variable(torch.arange(0, time))  # [0,1,2,3,......31]  (32,)
         b = b.cuda()
         '''
 	b = [0,1,2,.............31]
@@ -73,11 +72,13 @@ class TSF(nn.Module):
 			 [0,1,2,...31]-[19.0191]]
 	
 	'''
-        f = b - a[:, :, None]   # [6,3,32]  
-        f = f / gammas[:, None, None]
-        
+        f = b - a[:, :, None]   # (32,)-(6,3,1)-->(6,3,32)  
+	
+        #对应公式论文公式(2) 第3行的(t-centers)/gamma^2
+        f = f / gammas[:, None, None]   #(6,3,32) 
         f = f ** 2.0
         f += 1.0
+	
         f = np.pi * gammas[:, None, None] * f
         f = 1.0/f
         f = f/(torch.sum(f, dim=2) + 1e-6)[:,:,None]   # (6,3,32),对第二个维度聚合，相当于对所有的数值进行了归一化
@@ -93,7 +94,7 @@ class TSF(nn.Module):
         batch, channels, time = video.squeeze(3).squeeze(3).size()  # (2,1024,32)
 	
         vid = video.view(batch*channels, time, 1).unsqueeze(2) # (2,1024,32)-->(2*1024,32,1,1)
-        # f is (B x N x T)
+        # f is (2,3,32)  (B x N x T)
         f = self.get_filters(torch.tanh(self.delta).repeat(batch), 
 			     torch.tanh(self.gamma).repeat(batch), 
 			     torch.tanh(self.center.repeat(batch)), 
