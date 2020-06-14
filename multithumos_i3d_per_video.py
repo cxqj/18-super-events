@@ -36,10 +36,11 @@ def make_dataset(split_file, split, root, num_classes=65):
 
         if not os.path.exists(os.path.join(root, vid+'.npy')):   # 特征文件
             continue
-        fts = np.load(os.path.join(root, vid+'.npy'))  # (128,1024)
-        num_feat = fts.shape[0]
-        label = np.zeros((num_feat,num_classes), np.float32)
+        fts = np.load(os.path.join(root, vid+'.npy'))  # (32,1024)
+        num_feat = fts.shape[0]  # 32
+        label = np.zeros((num_feat,num_classes), np.float32)  # (32,65)
 
+        # 获取每帧对应的标注
         fps = num_feat/data[vid]['duration']
         for ann in data[vid]['actions']:   # 标注格式： [类别，开始时间，结束时间]
             for fr in range(0,num_feat,1):
@@ -64,11 +65,7 @@ class MultiThumos(data_utl.Dataset):
 
     def __getitem__(self, index):
         """
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: (image, target) where target is class_index of the target class.
+        entry: (vid, label, data[vid]['duration'])
         """
         entry = self.data[index]
         if entry[0] in self.in_mem:
@@ -89,19 +86,24 @@ class MultiThumos(data_utl.Dataset):
 def mt_collate_fn(batch):
     "Pads data and puts it into a tensor of same dimensions"
     max_len = 0
+    # b: (feat,label,[vid,duration])
+    # 其中feat:(32,1,1,1024)  label:(32,65)
+    
+    # 获取feat的最长长度
     for b in batch:   # b (T,H,W,C)
         if b[0].shape[0] > max_len:
-            max_len = b[0].shape[0]
+            max_len = b[0].shape[0]   #max_len = 32
 
     new_batch = []
     for b in batch:
-        f = np.zeros((max_len, b[0].shape[1], b[0].shape[2], b[0].shape[3]), np.float32)   
-        m = np.zeros((max_len), np.float32)    # MASK和输入特征的时间步一致 
-        l = np.zeros((max_len, b[1].shape[1]), np.float32)   
+        f = np.zeros((max_len, b[0].shape[1], b[0].shape[2], b[0].shape[3]), np.float32)     #(32,1,1,1024)
+        m = np.zeros((max_len), np.float32)  # (32,)    
+        l = np.zeros((max_len, b[1].shape[1]), np.float32)   #(32,65)
         f[:b[0].shape[0]] = b[0]
-        m[:b[0].shape[0]] = 1   # mask是一个和frame数量相当的全1的向量，具体作用不知道
+        m[:b[0].shape[0]] = 1   # [1,1,1,.....1]
         l[:b[0].shape[0], :] = b[1]
         new_batch.append([video_to_tensor(f), torch.from_numpy(m), torch.from_numpy(l), b[2]])  # (T,H,W,C)---->(C,T,H,W)
 
+    # 注意输出特征的格式为(B,C,T,H,W)
     return default_collate(new_batch)
     
